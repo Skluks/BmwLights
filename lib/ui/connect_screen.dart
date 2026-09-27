@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../app/app_controller.dart';
 import '../core/hex.dart';
@@ -41,14 +40,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
   Future<bool> _permissions() async {
     if (!Platform.isAndroid) return true;
-    final r = await [Permission.bluetoothScan, Permission.bluetoothConnect, Permission.locationWhenInUse].request();
-    final denied = r.entries.where((e) => e.value.isPermanentlyDenied).toList();
-    if (denied.isNotEmpty && mounted) {
-      showSnack(context, 'Разрешите Bluetooth в настройках приложения');
-      await openAppSettings();
-      return false;
-    }
-    return true;
+    final ok = await SppLink.requestPermissions();
+    if (!ok && mounted) showSnack(context, 'Разрешите «Устройства поблизости»/Bluetooth в настройках приложения');
+    return ok;
   }
 
   Future<void> _scan() async {

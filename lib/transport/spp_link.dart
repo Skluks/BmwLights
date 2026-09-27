@@ -26,6 +26,12 @@ class SppLink implements ByteLink {
   final _done = Completer<void>();
   StreamSubscription<dynamic>? _sub;
 
+  /// Asks for the Bluetooth runtime permissions (Android). Returns true when granted.
+  static Future<bool> requestPermissions() async {
+    if (!supported) return true;
+    return await _methods.invokeMethod<bool>('permissions') ?? false;
+  }
+
   /// Paired devices (pair the adapter in Android Bluetooth settings first).
   static Future<List<SppDevice>> bondedDevices() async {
     if (!supported) return const [];

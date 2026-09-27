@@ -1,6 +1,9 @@
 package com.skluks.bmw_lights
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
+import android.os.Build
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
 import android.content.Context
@@ -23,6 +26,8 @@ class MainActivity : FlutterActivity() {
     @Volatile
     private var socket: BluetoothSocket? = null
     private var sink: EventChannel.EventSink? = null
+    private var permissionResult: MethodChannel.Result? = null
+    private val permissionRequestCode = 4711
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -40,6 +45,7 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(messenger, "bmw_lights/spp").setMethodCallHandler { call, result ->
             when (call.method) {
+                "permissions" -> requestBtPermissions(result)
                 "bonded" -> bonded(result)
                 "connect" -> connect(call.argument<String>("address")!!, result)
                 "write" -> write(call.arguments as ByteArray, result)
@@ -50,6 +56,31 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    private fun btPermissions(): Array<String> =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+
+    private fun requestBtPermissions(result: MethodChannel.Result) {
+        val missing = btPermissions().filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isEmpty()) {
+            result.success(true)
+            return
+        }
+        permissionResult?.success(false)
+        permissionResult = result
+        requestPermissions(missing.toTypedArray(), permissionRequestCode)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != permissionRequestCode) return
+        permissionResult?.success(grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED })
+        permissionResult = null
     }
 
     private fun adapter() = (getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
