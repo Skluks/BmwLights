@@ -13,12 +13,11 @@ void main() {
     await tester.runAsync(app.load);
     await tester.pumpWidget(BmwLightsApp(app: app));
 
-    await tester.tap(find.text('Демо без машины'));
-    await tester.runAsync(() async {
-      while (!app.connected) {
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-      }
-    });
+    expect(find.text('Демо без машины'), findsOneWidget);
+    // Real timers drive the simulated adapter, so connect outside the fake test clock.
+    await tester.runAsync(app.connectDemo);
+    expect(app.connected, isTrue, reason: '${app.error}');
+    await tester.tap(find.text('Эффекты'));
     await tester.pumpAndSettle();
     expect(find.text('Party Mode'), findsOneWidget);
     expect(find.text('Bounce'), findsOneWidget);

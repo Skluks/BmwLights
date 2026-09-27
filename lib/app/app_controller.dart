@@ -214,6 +214,7 @@ class AppController extends ChangeNotifier {
   // ---------------- connection ----------------
 
   Future<void> connectDemo() async {
+    await disconnect();
     final car = SimCar();
     sim = car;
     _demoMap = _buildDemoMap(car.module);
@@ -221,7 +222,7 @@ class AppController extends ChangeNotifier {
       simLit = l;
       notifyListeners();
     });
-    await connect(car);
+    await _open(car);
   }
 
   static LampMap _buildDemoMap(SimLightModule m) {
@@ -251,11 +252,15 @@ class AppController extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    await connect(link);
+    await _open(link);
   }
 
   Future<void> connect(ByteLink link) async {
     await disconnect();
+    await _open(link);
+  }
+
+  Future<void> _open(ByteLink link) async {
     _link = link;
     state = LinkState.connecting;
     error = null;
